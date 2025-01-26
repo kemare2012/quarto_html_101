@@ -1,0 +1,131 @@
+---
+title: "Exploring Quarto: Data Presentation"
+author: "Marina K."
+format:
+  html:
+    toc: true
+    toc_float: true
+    embed-resources: true
+    fig-width: 7
+    fig-height: 5
+theme: United   
+execute:
+  echo: false
+---
+
+```{r}
+#| warning: false
+if(!require(pacman)) install.packages("pacman")
+pacman::p_load(knitr, tidyverse, kableExtra, reactable, plotly, babynames, wbstats)
+```
+
+## Quarto: A Powerful Tool for Reproducible and Engaging Data Science
+
+This HTML page demonstrates basic data visualisation techniques using Quarto. It does this by making use of the reactable and ggplot2 packages.
+
+Quarto is an open-source scientific and technical publishing system that combines the power of Markdown with the flexibility of R and Python. This unique approach enables seamless integration of code, data, and visualizations within a single document, making it an ideal tool for reproducible research, data analysis, and effective communication.
+
+By embedding code directly within the document, Quarto ensures that results are always up-to-date and easily verifiable. This reproducibility is crucial for scientific rigor and fosters trust in research findings. Moreover, Quarto provides a wide range of output formats, including HTML, PDF, and presentations, allowing you to tailor your work to different audiences and platforms.
+
+To learn more about Quarto see <https://quarto.org>.
+
+## Data Exploration and Visualization in Action
+
+This demo page showcases some of the key features of Quarto. You will find a static table summarizing key data points from the famous mtcars dataset and kable package, followed by an interactive table created using the reactable package, offering dynamic filtering and sorting capabilities for enhanced data exploration.
+
+Furthermore, the page includes three compelling visualizations. The first chart, generated using the infert dataset, is followed by a line chart using the babynames package. the latter explores the popularity of two baby names over time, revealing interesting trends and patterns. The third chart, leveraging the wbstats package, illustrates global population growth from 2000 to 2023, providing valuable insights into demographic shifts, including for the six independent ECCU countries.
+
+```{r}
+#| label: tbl-cars
+knitr::kable(mtcars[1:5, ], )
+```
+
+## Interactive Tables
+
+Now, let's create an interactive table using the reactable package and infertility dataset. This dataset examines the relationship between various factors such as education level, age, parity, and the incidence of infertility. 
+
+Read more about the dataset at <https://r-packages.io/datasets/infert_df>
+
+```{r}
+#| echo: false
+#| label: tbl-infert
+reactable(infert)
+```
+
+The next chart (see @fig-edu) presents a simple bar plot showing education from infert dataset, with a unique color palette.
+
+```{r}
+#| warning: false
+#| label: fig-edu
+#| fig-cap: "Education" 
+ggplot(data = infert, aes(x = education, fill = education)) + 
+  geom_bar()+
+  scale_fill_manual(values = c("#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"))+
+  theme_minimal()
+```
+
+## Plotting Baby Names 
+
+Here is the lot showing the evolution and popularity of the names "John" and "Elizabeth" over time (@fig-baby).
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-baby
+#| fig-cap: "Baby Names" 
+# Filter data for specific names and gender
+babynames %>% 
+  filter(name == "John" & sex == "M" | 
+        name == "Elizabeth" & sex == "F") %>% 
+# Create a line plot of name popularity over time
+ggplot(aes(year, prop)) +
+  geom_line(aes(color = sex), linewidth = 2) +
+  geom_point() +
+  geom_text(data = . %>% filter(year == 1965), aes(label = name),
+            nudge_y = .009) +
+  labs(title = "Popularity of the Names John and Elizabeth") + 
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
+## World Bank Data - Population Growth
+
+The next chart presents population growth (see @fig-pop) using World Bank data (wbstats package). It presents a bar chart of selected countries worldwide include the six independent ECCU countries which are highlighted.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: fig-pop
+#| fig-cap: "Population Growth" 
+popgrw <- wb_data("SP.POP.GROW", 
+                  start_date = 2000, end_date = 2023)
+popgrw_all <- popgrw |>
+  select(iso3c, country, date, SP.POP.GROW) %>% 
+  mutate(across(c('SP.POP.GROW'), round, 1)) %>% 
+  arrange(-SP.POP.GROW) %>% 
+  rename(`Pop.Growth`=SP.POP.GROW,
+         `Country`=country,
+         `Year`=date)
+pop<- popgrw_all %>%
+  group_by(Country, iso3c) %>%
+  summarise(mean = mean(Pop.Growth))
+selct <- c("ASM", "ABW", "BLZ", "VGB", "CUB", "CHL",
+              "DMA", "SLV", "FI", "FJI", "GRD", "IND",
+              "JAM", "MHL", "MUS", "SXM", "SGP", "LCA",
+              "KNA", "VCT", "TTO", "VUT", "BHS", "BRB", "ATG", "GDA")
+
+#Plot barplot with population growth in selected countries
+ggplot(subset(pop, iso3c %in% selct), aes(reorder(Country, mean), mean)) + 
+  geom_bar(aes(fill = ifelse(iso3c %in% c("ATG", "DMA","GRD", "KNA", "LCA", "VCT"), "eccu", "default")), stat="identity")+
+  scale_fill_manual(values = c(eccu = "steelblue", default = "skyblue")) +
+  coord_flip()+
+  labs(x = NULL,
+       y= "Avg pop growth",
+       title = "Average Population Growth, 2000-2023")+
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
+## Conclusion
+
+These examples demonstrate the versatility of Quarto in creating engaging and informative data-driven narratives. By combining the power of R with Quarto's intuitive interface, researchers and data scientists can effectively communicate their findings to a wide audience.
